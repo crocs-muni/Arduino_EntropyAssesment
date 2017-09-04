@@ -24,10 +24,11 @@ public:
   float tTupleEstimate(char* input, size_t len);
   float lrsEstimate(char* input, size_t len);
 
+  void sortArray(char* input, size_t len);
 private:
   //number of bits used to represent sample output values
   int bits_per_symbol = 8;
-  void sortArray(char* input, size_t len);
+
 
 };
 

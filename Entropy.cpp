@@ -41,6 +41,23 @@ float Entropy::lrsEstimate(char* input, size_t len){
   return 0;
 }
 
-void sortArray(char* input, size_t len){
+void Entropy::sortArray(char* input, size_t len){
+  if (len < 2) return;
 
+  char pivot = input[len / 2];
+
+  int i, j;
+  for (i = 0, j = len - 1; ; i++, j--) {
+    while (input[i] < pivot) i++;
+    while (input[j] > pivot) j--;
+
+    if (i >= j) break;
+
+    int temp = input[i];
+    input[i] = input[j];
+    input[j] = temp;
+  }
+
+  sortArray(input, i);
+  sortArray(input + i, len - i);
 }
