@@ -1,8 +1,7 @@
 #ifndef Entropy_h
 #define Entropy_h
 
-#include <cstddef>
-
+#include <Arduino.h>
 
 //Max alphabet size should be 256
 
@@ -24,11 +23,11 @@ public:
   float tTupleEstimate(char* input, size_t len);
   float lrsEstimate(char* input, size_t len);
 
-  void sortArray(char* input, size_t len);
 private:
   //number of bits used to represent sample output values
-  int bits_per_symbol = 8;
-
+  //int bits_per_symbol = 8;
+  void sortArray(char* input, size_t len);
+  float log2( float n );  
 
 };
 

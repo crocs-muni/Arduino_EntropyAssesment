@@ -1,6 +1,5 @@
 #include "Entropy.h"
-#include <iostream>
-#include <cstring>
+#include <string.h>
 #include <math.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -72,6 +71,12 @@ float Entropy::lrsEstimate(char* input, size_t len){
 
   return 0;
 }
+
+float Entropy::log2( float n ){  
+  // log(n)/log(2) is log2.
+  return log( n ) / log( 2 );
+}
+
 
 void Entropy::sortArray(char* input, size_t len){
   if (len < 2) return;
