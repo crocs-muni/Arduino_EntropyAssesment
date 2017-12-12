@@ -1,3 +1,8 @@
+/*
+ * Arduino entropy assesment lib,  as specified in SP800-90B
+ * Implementation of individual tests by Ram Singh (as a school project)
+ */
+
 #include "Entropy.h"
 #include <string.h>
 #include <math.h>
