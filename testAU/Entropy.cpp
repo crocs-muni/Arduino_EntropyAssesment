@@ -1,6 +1,7 @@
 /*
  * Arduino entropy assesment lib,  as specified in SP800-90B
  * Implementation of individual tests by Ram Singh (as a school project)
+ * Unit testing and corrections by Pierre-Louis Palant
  */
 
 #include "Entropy.h"
@@ -10,23 +11,24 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
+#define max(a,b) (((a)>(b))?(a):(b))
 
 /*
-  void Entropy::convertToArray(String input, char* output){
+  void Entropy::convertToArray(String data, char* output){
 
   }
 */
 
-float Entropy::allTests(char* input, size_t len) {
+float Entropy::allTests(char* data, size_t len) {
 
   return 0;
 }
 
 //individual tests
-float Entropy::mostCommonValueEstimate(char* input, size_t len) {
+float Entropy::mostCommonValueEstimate(char* data, size_t len) {
 
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
 
   //sort for easy counting
   sortArray(data, len);
@@ -54,12 +56,12 @@ float Entropy::mostCommonValueEstimate(char* input, size_t len) {
   return entropy;
 }
 
-float Entropy::collisionEstimate(char* input, size_t len) {
+float Entropy::collisionEstimate(char* data, size_t len) {
 
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
 
-  //void collistionEstimate(char *input, size_t len,  float *p, float *min_entropy)
+  //void collistionEstimate(char *data, size_t len,  float *p, float *min_entropy)
   //{
 
   /*1. Set v = 1, index = 1
@@ -75,7 +77,7 @@ float Entropy::collisionEstimate(char* input, size_t len) {
 
   size_t v = 0;  // initializing the variable v mu_bar = mu -(2.576 * sigma / math.sqrt(v))
   size_t index = 0;
-  size_t tv[len]; //
+  size_t* tv = (size_t*)calloc(len, sizeof(size_t)); //
   size_t i, j, valid; // variable for loops
   size_t count = 0;//  variable for storing intermediate count value
   float mu = 0, mu_bar = 0, sum = 0; // The mean value of the tv
@@ -89,11 +91,11 @@ float Entropy::collisionEstimate(char* input, size_t len) {
 
     for (j = index + 1; j < len; j++)
     {
-      if (input[index] == input[j])  // searching the same value in the remaining set
+      if (data[index] == data[j])  // searching the same value in the remaining set
       {
         tv[v] = j - index + 1;
         v = v + 1;
-        index = j ;
+        index = j+1 ;
         break;
       }
     }
@@ -119,6 +121,7 @@ float Entropy::collisionEstimate(char* input, size_t len) {
   {
     sum = sum + ((tv[i] - mu) * (tv[i] - mu));
   }
+  free(tv);
   sum = sum / v;
   sigma = sqrt(sum);
   sum = 0;
@@ -143,27 +146,31 @@ float Entropy::collisionEstimate(char* input, size_t len) {
   {
     entropy = -log2(p);
   }
-
+  
   return entropy;
 }
 
-float Entropy::markovEstimate(char* input, size_t len) {
+float Entropy::markovEstimate(char* data, size_t len) {
 
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
-  Serial.println("step0");
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
+///  Serial.println("step0");
   int O_i, O_j; // Intrim variable
   int d = 128;
-  int k = 3; // Number of symbols in input string. Need to be set before calling
+//  int k = NB_SYM; // Number of symbols in data string. Need to be set before calling
   int index;
-  int Oi[k];
+  int Oi[NB_SYM];
   float L;
-  float Pi[k];     // P - probalility
-  float Ppi[k];    // P prime
-  float epsilon_i[k];
-  float Oij[k][k];   // 2-D array for Oij
-  float Tij[k][k];   // 2-D array for Tij
-  float hc[k];
+  float* Pi  = (float*) calloc(NB_SYM,sizeof(float));     // P - probalility
+  float* Ppi = (float*) calloc(NB_SYM,sizeof(float));      // P prime
+  float* epsilon_i = (float*) calloc(NB_SYM,sizeof(float));      
+  //declares two aligned 2D arrays
+  //This method is more computation- and cache-efficient
+  //To access Oij[i][j] : Oij[i * NB_SYM + j]
+  float* Oij = (float*) calloc(NB_SYM*NB_SYM,sizeof(float));   // 2-D array for Oij
+    
+  float* Tij = (float*) calloc(NB_SYM*NB_SYM,sizeof(float));  // 2-D array for Tij 
+  float* hc = (float*) calloc(NB_SYM,sizeof(float));
 
   float temp = 0.0;
   float alpha = 0.0;
@@ -174,15 +181,15 @@ float Entropy::markovEstimate(char* input, size_t len) {
         where k ^ 2 is the number of terms in the transition matrix and d = 128 is
       the assumed length of the Markov chain.*/
   L = (float)len;
-  temp = (float)k * k;
+  temp = (float)NB_SYM*NB_SYM;
   alpha = MIN(pow(0.99, temp), pow(0.99, (float)d));
 
   // Probe-1
   //printf("\n Value of alpha = %f \n", alpha);
-  Serial.println("step1");
+///  Serial.println("step1");
   /*2. Estimate the initial state probability distribution, P, with:
        Pi = min(1, o_i / L + epsilon)cv */
-  for (int i = 0; i < k; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
     Oi[i] = 0;
     Ppi[i] = 0.0;
@@ -190,7 +197,7 @@ float Entropy::markovEstimate(char* input, size_t len) {
   }
 
   // Obtaining count of occurance of symbol invariable Oi
-  for (int i = 0; i < k; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
     for (int j = 0; j < len; j++)
     {
@@ -205,14 +212,14 @@ float Entropy::markovEstimate(char* input, size_t len) {
   }
   // printf("\n");
   //Probe-2
-  Serial.println("step2");
+///  Serial.println("step2");
   float epsilon_term = log2(1 / (1 - alpha));
 
   epsilon = sqrt(epsilon_term / (2 * (float)len));
 
   //printf("\n epsilon = %f\n", epsilon);
 
-  for (int i = 0; i < k; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
     Pi[i] = MIN(1.0, (Oi[i] / L + epsilon));
 
@@ -223,20 +230,20 @@ float Entropy::markovEstimate(char* input, size_t len) {
       Need to subtract 1 from count of last symbol for
     bounding matrix construction.Nothing follows the last occurance,
     therefore it should not be included in transition proportion. */
-  Oi[k - 1] = Oi[k - 1] - 1;
-  //printf("\n%d,\t %d", Oi[k-1], Oi[2]);
+  Oi[NB_SYM - 1] = Oi[NB_SYM - 1] - 1;
+  //printf("\n%d,\t %d", Oi[NB_SYM-1], Oi[2]);
 
-  Serial.println("step3");
+///  Serial.println("step3");
   /*4. Estimate the probabilities in the transition matrix T, overestimating where...
      Ti, j = 1 if o_i = 0
      min(1, oi, j + eps_i) otherwise */
   //Initializing the Matrix
-  for (int i = 0; i < k; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
-    for (int j = 0; j < k; j++)
+    for (int j = 0; j < NB_SYM; j++)
     {
-      Oij[i][j] = 0.0;
-      //Tij[i][j] = 1.0;
+      Oij[i*NB_SYM+j] = 0.0;
+      //Tij[i*NB_SYM+j] = 1.0;
     }
   }
 
@@ -247,42 +254,44 @@ float Entropy::markovEstimate(char* input, size_t len) {
     //for (int j = 0; j < len; j++)
     //{
     O_j = (int)(data[j] - '0');
-    Oij[O_i][O_j] ++;
+    Oij[O_i*NB_SYM+O_j]++;
     O_i = O_j;
-    //Tij[i][j] = 1.0;
+    //Tij[i*NB_SYM+j] = 1.0;
     //}
 
   }
 
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
     epsilon_i[i] = sqrt(epsilon_term / (2 * (float) Oi[i]));
     //printf("\n%f\t %f\t%d\n", epsilon_i[i], epsilon_term,Oi[i]);
   }
 
-  for (int i = 0; i < k; i++)
+  for (int i = 0; i < NB_SYM; i++)
   {
-    for (int j = 0; j < k; j++)
+    for (int j = 0; j < NB_SYM; j++)
     {
       if (Oi[i] == 0)
-        Tij[i][j] = 1;
+        Tij[i*NB_SYM+j] = 1;
       else
-        //temp = Oij[i][j] / Oi[i] + epsilon_i[i];
-        Tij[i][j] = MIN(1.0, (Oij[i][j] / Oi[i] + epsilon_i[i]));
-      // printf("\t %f", Tij[i][j]);
+        //temp = Oij[i*NB_SYM+j] / Oi[i] + epsilon_i[i];
+        Tij[i*NB_SYM+j] = MIN(1.0, (Oij[i*NB_SYM+j] / Oi[i] + epsilon_i[i]));
+      // printf("\t %f", Tij[i*NB_SYM+j]);
 
     }
     // printf("\n");
   }
-  Serial.println("step4");
+  free(epsilon_i);
+  free(Oij);
+///  Serial.println("step4");
   for (int j = 0; j < d - 1; j++)
   {
-    for (int c = 0; c < k; c++)
+    for (int c = 0; c < NB_SYM; c++)
     {
       float h_temp = 0.0;
-      for (int i = 0; i < k; i++)
+      for (int i = 0; i < NB_SYM; i++)
       {
-        Ppi[i] = Pi[i] * Tij[i][c];
+        Ppi[i] = Pi[i] * Tij[i*NB_SYM+c];
         h_temp = MAX(Ppi[i], h_temp);
       }
       hc[c] = h_temp;
@@ -290,25 +299,30 @@ float Entropy::markovEstimate(char* input, size_t len) {
 
     }
 
-    for (int i = 0; i < k; i++)
+    for (int i = 0; i < NB_SYM; i++)
     {
       Pi[i] = hc[i];
     }
   }
+  free(hc);
+  free(Tij);
 
-  for (int i = 0; i < k - 1; i++)
+
+  free(Ppi);
+  for (int i = 0; i < NB_SYM - 1; i++)
   {
     Pmax = MAX(Pi[i], Pi[i + 1]);
 
   }
+  free(Pi);
 
-  Serial.println("step5");
+///  Serial.println("step5");
   //printf("\n Pmax =%f",Pmax);
 
   // The value of Pmax is reduced to 0.0000 after 128 iteration. therfore minimum value is assigned
   //Pmax=MAX(0.001,Pmax);
   Pmax = 0.00001;
-  Serial.println("Pmax");
+///  Serial.println("Pmax");
   //Serial.println(Pmax);
   entropy = -log2(Pmax) / d;
 
@@ -316,17 +330,14 @@ float Entropy::markovEstimate(char* input, size_t len) {
 }
 
 // 6.3.4
-float Entropy::compressionEstimate(char* input, size_t len) {
+float Entropy::compressionEstimate(char* data, size_t len) {
 
-  //char* data;
-  //data = (char*)malloc(sizeof(char) * len); // Visual Studio
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char* data;
+//  data = (char*)calloc(len,sizeof(char) ); // Visual Studio
+//  memcpy(data, data, len * sizeof(char));
 
-  size_t k = 3;
-  size_t d = 10;
   size_t v = 0;
-  size_t D[15]; // variable for storing the D
+  size_t* D = (size_t*)calloc(SIZE-NB_OBS,sizeof(size_t)); // variable for storing the D
   float b = 0.0;
   size_t max_sk = 0;
   float mean_x = 0.0;
@@ -341,18 +352,18 @@ float Entropy::compressionEstimate(char* input, size_t len) {
 
 
   // Calculating v
-  v = len - d;
+  v = len - NB_OBS;
 
   // 2. Initializing the dictionary
-  int dict[3];
-  for (size_t i = 0; i < k; i++)
+  int dict[NB_SYM];
+  for (size_t i = 0; i < NB_SYM; i++)
   {
     dict[i] = 0;
   }
 
-  for (size_t i = 0; i < d; i++)
+  for (size_t i = 0; i < NB_OBS; i++)
   {
-    for (size_t j = 0; j < k; j++)
+    for (size_t j = 0; j < NB_SYM; j++)
     {
       if (j == (int)(data[i] - '0'))
       {
@@ -368,19 +379,19 @@ float Entropy::compressionEstimate(char* input, size_t len) {
     printf("value of dictionary obained are dict[%d]=%d \n",j,  dict[j]);
 
     }*/
-  for (size_t i = d; i < len; i++)
+  for (size_t i = NB_OBS; i < len; i++)
   {
-    for (size_t j = 0; j < k; j++)
+    for (size_t j = 0; j < NB_SYM; j++)
     {
       if ((dict[j] != 0) && (j == (int)(data[i] - '0')))
       {
-        D[i - d] = i - dict[j] + 1;
+        D[i - NB_OBS] = i - dict[j] + 1;
         dict[j] = i + 1;
       }
 
       if ((dict[j] == 0) && (j == (int)(data[i] - '0')))
       {
-        D[i - d] = i + 1;
+        D[i - NB_OBS] = i + 1;
         dict[j] = i + 1;
       }
 
@@ -414,6 +425,7 @@ float Entropy::compressionEstimate(char* input, size_t len) {
   {
     term += (log2(D[i]) * log2(D[i]));
   }
+  free(D);
   term1 = (term / v) - (mean_x * mean_x);
 
   std_dev = c * sqrt(term1);
@@ -422,7 +434,7 @@ float Entropy::compressionEstimate(char* input, size_t len) {
 
   prime_mean_x = mean_x - (2.57 * std_dev) / sqrt((float)v);
   //printf("\n X prime = %f", prime_mean_x);
-  valid = solve_for_p_634(prime_mean_x, k, v, d, &p);
+  valid = solve_for_p_634(prime_mean_x, NB_SYM, v, NB_OBS, &p);
 
   if (valid == 0)
   { // No solution to equation.Assume max min - entropy.
@@ -445,12 +457,12 @@ float Entropy::compressionEstimate(char* input, size_t len) {
 }
 
 //6.3.5
-float Entropy::tTupleEstimate(char* input, size_t len) {
+float Entropy::tTupleEstimate(char* data, size_t len) {
 
   //char* data; // For VS2015
   //data = (char*)malloc(sizeof(char) * len); // For VS2015
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
 
   float min_entropy = 0.0;
   size_t L = 21;
@@ -526,11 +538,11 @@ float Entropy::tTupleEstimate(char* input, size_t len) {
   //return 0;
 }
 //6.3.6 lrsEstimate
-float Entropy::lrsEstimate(char* input, size_t len) {
+float Entropy::lrsEstimate(char* data, size_t len) {
   //char* data;
   //data = (char*)malloc(sizeof(char) * len);
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
 
   float min_entropy = 0.0;
   size_t L = len;
@@ -636,18 +648,18 @@ float Entropy::lrsEstimate(char* input, size_t len) {
   //return 0;
 }
 //3.6.7 multiMCW
-float Entropy::multiMCWEstimate(char* input, size_t len) {
+float Entropy::multiMCWEstimate(char* data, size_t len) {
   //char* data; // VS 2015
   // data = (char*)malloc(sizeof(char) * len); // VS 2015
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
   
   float min_entropy=0.0;
   size_t L = len;
   size_t wlen;   // Variable for window lenght used in finding most common value
   char prediction; // Prediction variable
   size_t C = 0; // Variable for storing sum of correct[]
-  //size_t s[3] = { 0,1,2 }; // array of input symbols
+  //size_t s[3] = { 0,1,2 }; // array of data symbols
   size_t i, j; //Loop counters
   float Pavg = 0.0;  // Prime of Pglobal 
   float Pglob = 0.0; // is Pglobal
@@ -659,10 +671,13 @@ float Entropy::multiMCWEstimate(char* input, size_t len) {
   // For our experiment w1=3,w2=5,w3=7,w4=9
   // size_t w[4] = {63,255,1023,4095};
 
-  size_t w[4] = {3,5,7,9 };
-  size_t N;
-  N = L - w[0];
-  size_t correct[12];  // VLA is not permitted in VS2015
+  size_t w[4] = {W_ONE, W_TWO, W_THREE, W_FOUR }; //This makes it easier to change window sizes 
+  size_t N = L - w[0];
+//  size_t correct[12];  // VLA is not permitted in VS2015 
+  if(N>=0){
+    N=len;
+  }
+  size_t* correct =(size_t*) calloc(N,sizeof(size_t)); //Might not be a good idea to calloc with an arduino
   char mdata[12]; // Buffer to store temporary string for finding the mostCommon
   //size_t *correct  = (size_t*)alloca(sizeof(size_t) * N);
   // initializing the correct arra
@@ -767,25 +782,26 @@ float Entropy::multiMCWEstimate(char* input, size_t len) {
   //printf("\n Pmax =%f", Prun);
   //Pmax = 0.76;
   min_entropy = -log2(Pmax);
+  free(correct);
   return (min_entropy);
   //return 0;
 
 
 }
 //3.6.8 lagPredictionEstimate
-float Entropy::lagPredictionEstimate(char* input, size_t len)
+float Entropy::lagPredictionEstimate(char* data, size_t len)
 {
   //char* data; // for VS 2015
   //data = (char*)malloc(sizeof(char) * len); // for VS 2015
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
   
   float min_entropy=0.0;
   size_t L = len;
   //size_t wlen;   // Variable for window lenght used in finding most common value
   char prediction; // Prediction variable
   size_t C = 0; // Variable for storing sum of correct[]
-  //size_t s[3] = { 0,1,2 }; // array of input symbols
+  //size_t s[3] = { 0,1,2 }; // array of data symbols
   size_t i, j, d; //Loop counters
   float Pavg = 0.0;  // Prime of Pglobal 
   float Pglob = 0.0; // is Pglobal
@@ -898,12 +914,12 @@ float Entropy::lagPredictionEstimate(char* input, size_t len)
 }
 
 //3.6.9 multiMMCEstimate
-float Entropy::multiMMCEstimate(char* input, size_t len)
+float Entropy::multiMMCEstimate(char* data, size_t len)
 {
   //char* data; // for VS2015
   //data = (char*)malloc(sizeof(char) * len); // for VS2015
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
   
   float min_entropy=0.0;
   size_t L = len;
@@ -911,7 +927,7 @@ float Entropy::multiMMCEstimate(char* input, size_t len)
   //size_t D = 3;
   char prediction; // Prediction variable
   size_t C = 0; // Variable for storing sum of correct[]
-  //size_t s[3] = { 0,1,2 }; // array of input symbols
+  //size_t s[3] = { 0,1,2 }; // array of data symbols
   size_t i, j,k,l,m,n, d; //Loop counters
   size_t matched = 0;
   float Pavg = 0.0;  // Prime of Pglobal 
@@ -1082,12 +1098,12 @@ float Entropy::multiMMCEstimate(char* input, size_t len)
 
 
 //3.6.10 LZ78YEstimate
-float Entropy::LZ78YEstimate(char* input, size_t len)
+float Entropy::LZ78YEstimate(char* data, size_t len)
 {
   //char* data;
   //data = (char*)malloc(sizeof(char) * len);
-  char data[len];
-  memcpy(data, input, len * sizeof(char));
+//  char data[len];
+//  memcpy(data, data, len * sizeof(char));
   
   float min_entropy=0.0;
   size_t L = len;
@@ -1104,26 +1120,27 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
   
   // Step -1
   size_t N;
-  size_t B;
-  B = 4;
   N = L - B - 1;
-  size_t correct[len];  // VLA is not permitted in VS2015
+  size_t* correct = (size_t*) calloc(N,sizeof(size_t));  // VLA is not permitted in VS2015
   
   char y = 0;
   char maxCount = 0;
   
   
   // initializing the correct array
-  for (i = 0; i < len; i++)
+  for (i = 0; i < N; i++)
   {
     correct[i] = 0;
   }
   
-  size_t maxDictionarySize = 65536;
   
   //Step -2
-  size_t dictSize[4] = { 0 }; // Vairable to keep track of dictionary sizes
-  char D[4][100] = { 0 };        // Initialzing all the 4 dictionaries with null
+  size_t dictSize[B] = { 0 }; // Vairable to keep track of dictionary sizes
+  
+  //declares aligned 2D array
+  //This method is more computation- and cache-efficient
+  //To access D[i][j] : D[i *  + j]
+  char* D = (char*) calloc(MAX_DICT_SIZE*B,sizeof(char)) ;        // Initialzing all the 4 dictionaries with null
   char prev[5] = { 0 };
 
    
@@ -1135,10 +1152,10 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
     {
       for (k = 0; k < j + 2; k++)
       {
-        D[j][dictSize[j] + k + 1] = data[i - j - 2 + k];
+        D[j*B+(dictSize[j] + k + 1)] = data[i - j - 2 + k];
        // printf("%c", D[j][dictSize[j] + k + 1]); // for VS2015
       }
-      dictSize[j] = dictSize[j] + j + 2;
+      dictSize[j] = (dictSize[j]+j+2)<MAX_DICT_SIZE ? (dictSize[j] + j + 2): MAX_DICT_SIZE;
       //printf("\n"); // for VS2015
       //printf("size of dictionary %d\n", dictSize[j]); // for VS2015
 
@@ -1159,14 +1176,14 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
         //printf("%c",prev[k]); // for VS2015
       }
       //Step - 3b(ii)
-      for (k = 0; k < dictSize[j] - (j+2); k=k+j+2)
+      for (k = 0; k < (((dictSize[j] - (j+2))>MAX_DICT_SIZE) ? 1 : (dictSize[j] - (j+2))) ; k=k+j+2)
       {
        // printf("\n k =%d", k); // for VS2015
         matched = 0;
         y = 0;
         for (n = 0; n < j+1; n++)
         {
-          if (D[j][k+n+1] == prev[n])
+          if (D[j*B+k+n+1] == prev[n])
           {
             matched++;
             
@@ -1174,7 +1191,7 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
         }
         if (matched == (j + 1))
         {
-          y = D[j][k + n+1];
+          y = D[j*B+ k + n+1];
           //printf("\n matched\n"); // for VS2015
         }
          //Step - 3b(iii)
@@ -1189,7 +1206,6 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
 
     } // end of j loop
 
-      
     //Step - 4
     if (prediction == data[i] )
     {
@@ -1200,6 +1216,8 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
         
   } // end of i loop (master loop)
 
+  free(D);
+      
   // Step - 5
 
   for (i = 0; i < N; i++)
@@ -1217,6 +1235,7 @@ float Entropy::LZ78YEstimate(char* input, size_t len)
 
   //step - 7
   r = findMaxRun(correct, N);
+  free(correct);
   r =r+1;
   //printf("Value of r = %d",r); //for VS 2015
   Prun = calcRun(r, N);
@@ -1238,25 +1257,25 @@ float Entropy::log2( float n ) {
 }
 
 
-void Entropy::sortArray(char* input, size_t len) {
+void Entropy::sortArray(char* data, size_t len) {
   if (len < 2) return;
 
-  char pivot = input[len / 2];
+  char pivot = data[len / 2];
 
   int i, j;
   for (i = 0, j = len - 1; ; i++, j--) {
-    while (input[i] < pivot) i++;
-    while (input[j] > pivot) j--;
+    while (data[i] < pivot) i++;
+    while (data[j] > pivot) j--;
 
     if (i >= j) break;
 
-    int temp = input[i];
-    input[i] = input[j];
-    input[j] = temp;
+    int temp = data[i];
+    data[i] = data[j];
+    data[j] = temp;
   }
 
-  sortArray(input, i);
-  sortArray(input + i, len - i);
+  sortArray(data, i);
+  sortArray(data + i, len - i);
 }
 
 size_t Entropy::solveForP(float mu_bar, float* p)
@@ -1276,7 +1295,7 @@ size_t Entropy::solveForP(float mu_bar, float* p)
   if (mu_bar > Ep_maxvalid)
   {
     *p = (float)0.0;
-    Serial.println(*p);
+///    Serial.println(*p);
     return 0;
   }
   else
@@ -1310,7 +1329,7 @@ size_t Entropy::solveForP(float mu_bar, float* p)
 
     }
     *p = p1;
-    Serial.println(*p);
+///    Serial.println(*p);
     return 1;
   }
 
@@ -1411,7 +1430,7 @@ float Entropy::func_G(float p, size_t v, size_t d)
   float N = (float) v + (float)d;
   float inSum = 0.0;
   float tempSum = 0.0;
-  float st[100];
+  float* st = (float*) calloc(SIZE,sizeof(float));
   float temp = 0.0;
 
   // The inner sum for s = 1->d...compute once...use in every iteration of outer loop
@@ -1455,6 +1474,7 @@ float Entropy::func_G(float p, size_t v, size_t d)
     tempSum = tempSum + st[i];
   }
 
+  free(st);
   Gsum += p * tempSum;
   //Serial.println(tempSum);
   //printf("\n Final Gsum =%f", Gsum);
@@ -1483,7 +1503,7 @@ char Entropy:: mostComman(char* data, size_t length)
       }
     }// End of for loop for j
 
-     //printf("\n Value = %c, Count = %d",input[i],count); // Probe for displaying the result
+     //printf("\n Value = %c, Count = %d",data[i],count); // Probe for displaying the result
 
      // Comparing the count value with previous maxCount value, if heigher replace it.
 

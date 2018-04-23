@@ -1,10 +1,29 @@
 #ifndef Entropy_h
 #define Entropy_h
 
-#include <Arduino.h>
+#include "Arduino.h"
+#include <algorithm>
+//Shared constants:
+#define NB_SYM 2
+#define SIZE 1000000
+
+
+//Constants for MultiMCW
+//Sizes for MultiMCW window
+#define W_ONE 63
+#define W_TWO 255
+#define W_THREE 1023
+#define W_FOUR 4096
+
+//Constants for Compression Estimate:
+//Number of observations 
+#define NB_OBS 1000
+
+//Constants for LZ78Y estimate
+#define MAX_DICT_SIZE  65536
+#define B 16
 
 //Max alphabet size should be 256
-
 class Entropy {
 
 public:
